@@ -1,0 +1,27 @@
+---
+# tasks file for enqack.confluence
+
+- block:
+  - name: Create Crowd properties file
+    template:
+      src: "{{ role_path }}/templates/crowd.properties.j2"
+      dest: "{{ confluence_install_directory }}/confluence/WEB-INF/classes/crowd.properties"
+      owner: "{{ confluence_run_user }}"
+      group: "{{ confluence_run_group }}"
+
+  - name: Set authenticator class to Crowd SSO
+    shell: |
+      xmlstarlet edit --pf --inplace \
+      --update "//security-config/authenticator/@class" \
+      --value "com.atlassian.confluence.user.ConfluenceCrowdSSOAuthenticator" \
+      "{{ confluence_install_directory }}/confluence/WEB-INF/classes/seraph-config.xml"
+
+  when: confluence_crowd_sso_enabled | bool
+
+- name: Set authenticator class to Confluence
+  shell: |
+    xmlstarlet edit --pf --inplace \
+    --update "//security-config/authenticator/@class" \
+    --value "com.atlassian.confluence.user.ConfluenceAuthenticator" \
+    "{{ confluence_install_directory }}/confluence/WEB-INF/classes/seraph-config.xml"
+  when: not confluence_crowd_sso_enabled | bool

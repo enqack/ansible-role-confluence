@@ -1,0 +1,46 @@
+---
+# defaults file for enqack.confluence
+
+confluence_version: 6.15.6
+
+confluence_pkg: atlassian-confluence-{{ confluence_version }}.tar.gz
+
+confluence_download_url: https://www.atlassian.com/software/confluence/downloads/binary/{{ confluence_pkg }}
+
+confluence_context_path: ROOT
+
+confluence_home_directory: /var/atlassian/application-data/confluence
+
+confluence_install_directory: /opt/atlassian/confluence
+
+confluence_database_url: postgresql://confluence_user:jellyfish@postgresql:5432/confluence_db
+
+confluence_run_user: confluence
+
+confluence_run_group: confluence
+
+confluence_port: 8090
+
+confluence_redirect_port: 8443
+
+confluence_tomcat_shutdown_port: 8002
+
+confluence_crowd_sso_enabled: false
+
+confluence_crowd_base_url: http://crowd:8095/crowd
+
+confluence_application_name: Confluence
+
+confluence_application_password: changeit
+
+confluence_mail_enabled: false
+
+confluence_mail_host: localhost
+
+confluence_mail_user: confluence
+
+confluence_mail_password: changeit
+
+confluence_mail_port: 25
+
+confluence_mail_debug: false

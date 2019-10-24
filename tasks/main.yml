@@ -1,0 +1,87 @@
+---
+# tasks file for enqack.confluence
+
+- name: Create run user account
+  user:
+    name: "{{ confluence_run_user }}"
+    groups: atlassian
+    append: true
+
+- name: Create Confluence install directory
+  file:
+    path: "{{ confluence_install_directory }}"
+    owner: "{{ confluence_run_user }}"
+    group: "{{ confluence_run_group }}"
+    recurse: true
+
+- name: Check for existing Confluence archive (local)
+  stat:
+    path: "{{ role_path }}/files/{{ confluence_pkg }}"
+  become: false
+  run_once: true
+  register: package_check
+  delegate_to: 127.0.0.1
+
+- name: Download Confluence (local)
+  get_url:
+    url: "{{ confluence_download_url }}"
+    dest: "{{ role_path }}/files/{{ confluence_pkg }}"
+    force: true
+  become: false
+  run_once: true
+  delegate_to: 127.0.0.1
+  when: not package_check.stat.exists | bool
+
+- name: Extract Confluence
+  unarchive:
+    src: "{{ role_path }}/files/{{ confluence_pkg }}"
+    dest: "{{ confluence_install_directory }}"
+    extra_opts: --strip=1
+
+- name: Set Confluence home
+  copy:
+    dest: "{{ confluence_install_directory }}/confluence/WEB-INF/classes/confluence-init.properties"
+    content: confluence.home = {{ confluence_home_directory }}
+
+- name: Set permissions on install directory
+  file:
+    path: "{{ confluence_install_directory }}"
+    owner: "{{ confluence_run_user }}"
+    group: "{{ confluence_run_group }}"
+    recurse: true
+
+- name: Set permissions on home directory
+  file:
+    path: "{{ confluence_home_directory }}"
+    owner: "{{ confluence_run_user }}"
+    group: "{{ confluence_run_group }}"
+    recurse: true
+
+- name: Configure Tomcat
+  template:
+    src: "{{ role_path }}/templates/server.xml.j2"
+    dest: "{{ confluence_install_directory }}/conf/server.xml"
+    owner: "{{ confluence_run_user }}"
+    group: "{{ confluence_run_group }}"
+
+# - name: Move JNDI mail requirements to default lib path
+#   copy:
+#     src: "{{ confluence_install_directory }}/confluence/WEB-INF/lib/mail-*.jar"
+#     dest: "{{ confluence_install_directory }}/lib/"
+#     remote_src: true
+
+- name: Configure datasource reference
+  shell: |
+    xmlstarlet edit -N x='http://java.sun.com/xml/ns/j2ee' \
+    --subnode '//x:web-app' -t elem -n 'resource-ref' -v '' \
+    --insert '//x:web-app/resource-ref' -t elem -n 'description'  -v 'Connection Pool' \
+    --insert '//x:web-app/resource-ref' -t elem -n 'res-ref-name' -v 'jdbc/confluence' \
+    --insert '//x:web-app/resource-ref' -t elem -n 'res-type'     -v 'javax.sql.Datasource' \
+    --insert '//x:web-app/resource-ref' -t elem -n 'res-auth'     -v 'Container' \
+    "{{ confluence_install_directory }}/confluence/WEB-INF/web.xml"
+
+- name: Import Crowd SSO tasks
+  import_tasks: crowd_sso.yml
+
+- name: Import systemd tasks
+  import_tasks: systemd.yml

@@ -1,0 +1,14 @@
+#jinja2: trim_blocks:False
+[Unit]
+Description=Confluence Team Collaboration Software
+After=network.target
+
+[Service]
+Type=forking
+User={% if confluence_port <= 1024 %}root{% else %}{{ confluence_run_user }}{% endif %}
+PIDFile={{ confluence_install_directory }}/work/catalina.pid
+ExecStart={{ confluence_install_directory }}/bin/start-confluence.sh
+ExecStop={{ confluence_install_directory }}/bin/stop-confluence.sh
+
+[Install]
+WantedBy=multi-user.target

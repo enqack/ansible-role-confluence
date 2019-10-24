@@ -1,0 +1,43 @@
+<Server port="{{ confluence_tomcat_shutdown_port }}" shutdown="SHUTDOWN" debug="0">
+    <Service name="Tomcat-Standalone">
+        <!--
+         ==============================================================================================================
+         DEFAULT - Direct connector with no proxy, for unproxied HTTP access to Confluence.
+
+         If using a http/https proxy, comment out this connector.
+         ==============================================================================================================
+        -->
+        <Connector port="{{ confluence_port }}" connectionTimeout="20000" redirectPort="{{ confluence_redirect_port }}"
+                   maxThreads="48" minSpareThreads="10"
+                   enableLookups="false" acceptCount="10" debug="0" URIEncoding="UTF-8"
+                   protocol="org.apache.coyote.http11.Http11NioProtocol"/>
+
+
+        <Engine name="Standalone" defaultHost="localhost" debug="0">
+            <Host name="localhost" debug="0" appBase="webapps" unpackWARs="true" autoDeploy="false" startStopThreads="4">
+                <Context path="{% if confluence_context_path == 'ROOT' %}{% endif %}{% if confluence_context_path != 'ROOT' %}{{ confluence_context_path }}{% endif %}" docBase="../confluence" debug="0" reloadable="false" useHttpOnly="true">
+                    <!-- Logging configuration for Confluence is specified in confluence/WEB-INF/classes/log4j.properties -->
+                    <Manager pathname=""/>
+                    <Valve className="org.apache.catalina.valves.StuckThreadDetectionValve" threshold="60"/>
+
+                    {% if confluence_mail_enabled | bool -%}
+                    <Resource name="mail/smtp" type="javax.mail.Session" auth="Container" mail.debug="{{ confluence_mail_debug }}"
+                              mail.smtp.host="{{ confluence_mail_host }}" mail.smtp.port="{{ confluence_mail_port }}"
+                              mail.smtp.user="{{ confluence_mail_user }}" password="{{ confluence_mail_password }}"
+                              mail.smtp.auth="true" mail.transport.protocol="smtp" />
+                    {% endif -%}
+
+                    <Resource name="jdbc/confluence" type="javax.sql.DataSource" auth="Container"
+                              username="{{ confluence_database_url | urlsplit('username') }}" password="{{ confluence_database_url | urlsplit('password') }}"
+                              url="jdbc:{{ confluence_database_url | urlsplit('scheme') }}://{{ confluence_database_url | urlsplit('hostname') }}:{{ confluence_database_url | urlsplit('port') }}{{ confluence_database_url | urlsplit('path') }}"
+                              maxTotal="25" maxIdle="10" validationQuery="select 1" driverClassName="org.postgresql.Driver" />
+                </Context>
+
+                <Context path="${confluence.context.path}/synchrony-proxy" docBase="../synchrony-proxy" debug="0"
+                         reloadable="false" useHttpOnly="true">
+                    <Valve className="org.apache.catalina.valves.StuckThreadDetectionValve" threshold="60"/>
+                </Context>
+            </Host>
+        </Engine>
+    </Service>
+</Server>
